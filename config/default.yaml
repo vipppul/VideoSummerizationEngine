@@ -7,10 +7,11 @@ app:
   summary_storage_path: "./data/summaries"
 
 ingestion:
-  sample_strategy: "fixed_fps"           # fixed_fps | keyframe | scene_change | adaptive
+  sample_strategy: "adaptive"           # fixed_fps | keyframe | scene_change | adaptive
   sample_interval_sec: 1.0
-  scene_threshold: 0.3
+  scene_threshold: 0.25
   min_interval_sec: 0.5
+  max_interval_sec: 3.0
   queue_max_size: 64
   queue_overflow_policy: "block"         # block | drop_oldest
   ffmpeg_hwaccel: null                   # null | cuda | vaapi
@@ -31,7 +32,7 @@ vlm:
   batch_size: 4
   tasks:
     - "MORE_DETAILED_CAPTION"
-    - "OCR_WITH_REGION"
+    - "OCR"
   parallel_tasks: false
   fallback_to_heuristic: true           # If Florence-2 cannot be loaded on low VRAM, graceful fallback
 

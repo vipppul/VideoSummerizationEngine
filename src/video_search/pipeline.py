@@ -116,6 +116,7 @@ class PipelineOrchestrator:
             sample_interval_sec=self.config.ingestion.sample_interval_sec,
             scene_threshold=self.config.ingestion.scene_threshold,
             min_interval_sec=self.config.ingestion.min_interval_sec,
+            max_interval_sec=getattr(self.config.ingestion, "max_interval_sec", 3.0),
             queue_max_size=self.config.ingestion.queue_max_size,
             queue_overflow_policy=self.config.ingestion.queue_overflow_policy,
         )

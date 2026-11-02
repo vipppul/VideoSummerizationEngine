@@ -165,10 +165,11 @@ class AdaptiveSampling(SamplingGate):
 
 
 def create_sampling_gate(
-    strategy: str = "fixed_fps",
+    strategy: str = "adaptive",
     interval_sec: float = 1.0,
-    scene_threshold: float = 0.3,
+    scene_threshold: float = 0.25,
     min_interval_sec: float = 0.5,
+    max_interval_sec: float = 3.0,
 ) -> SamplingGate:
     strat = strategy.lower()
     if strat == "fixed_fps":
@@ -181,6 +182,11 @@ def create_sampling_gate(
         return AdaptiveSampling(
             scene_threshold=scene_threshold,
             min_interval_sec=min_interval_sec,
+            max_interval_sec=max_interval_sec,
         )
-    return FixedFPSSampling(sample_interval_sec=interval_sec)
+    return AdaptiveSampling(
+        scene_threshold=scene_threshold,
+        min_interval_sec=min_interval_sec,
+        max_interval_sec=max_interval_sec,
+    )
 

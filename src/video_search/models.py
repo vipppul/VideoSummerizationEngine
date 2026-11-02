@@ -10,10 +10,11 @@ import numpy as np
 
 @dataclass
 class IngestConfig:
-    sample_strategy: str = "fixed_fps"
+    sample_strategy: str = "adaptive"
     sample_interval_sec: float = 1.0
-    scene_threshold: float = 0.3
-    min_interval_sec: 0.5 = 0.5
+    scene_threshold: float = 0.25
+    min_interval_sec: float = 0.5
+    max_interval_sec: float = 3.0
     queue_max_size: int = 64
     queue_overflow_policy: str = "block"
     ffmpeg_hwaccel: Optional[str] = None

@@ -18,10 +18,11 @@ class AppConfig(BaseModel):
 
 
 class IngestionSettings(BaseModel):
-    sample_strategy: str = "fixed_fps"
+    sample_strategy: str = "adaptive"
     sample_interval_sec: float = 1.0
-    scene_threshold: float = 0.3
+    scene_threshold: float = 0.25
     min_interval_sec: float = 0.5
+    max_interval_sec: float = 3.0
     queue_max_size: int = 64
     queue_overflow_policy: str = "block"
     ffmpeg_hwaccel: Optional[str] = None
@@ -45,7 +46,7 @@ class VLMSettings(BaseModel):
     tasks: List[str] = Field(
         default_factory=lambda: [
             "MORE_DETAILED_CAPTION",
-            "OCR_WITH_REGION",
+            "OCR",
         ]
     )
     parallel_tasks: bool = False

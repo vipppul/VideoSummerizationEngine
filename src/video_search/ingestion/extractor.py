@@ -41,6 +41,7 @@ class FrameExtractor:
             interval_sec=self.config.sample_interval_sec,
             scene_threshold=self.config.scene_threshold,
             min_interval_sec=self.config.min_interval_sec,
+            max_interval_sec=getattr(self.config, "max_interval_sec", 3.0),
         )
 
         metadata = get_video_metadata(source_uri)

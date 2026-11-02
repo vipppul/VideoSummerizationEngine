@@ -201,8 +201,24 @@ class VisionLanguageModel:
                         )
                     )
 
-            # 3. OCR With Regions
-            if "OCR_WITH_REGION" in self.settings.tasks:
+            # 3. Fast raw OCR (extracts text without polygon coordinate overhead)
+            if "OCR" in self.settings.tasks:
+                res = self._run_florence_task(vlm_image, "<OCR>")
+                raw_ocr_text = res.get("<OCR>", "")
+                if raw_ocr_text:
+                    lines = [ln.strip() for ln in raw_ocr_text.split("\n") if ln.strip()]
+                    for ln in lines:
+                        clean_ln = re.sub(r"^(</s>|<\?s>|\s*)+", "", ln).strip()
+                        if clean_ln:
+                            ocr_results.append(
+                                OCRResult(
+                                    text=clean_ln,
+                                    confidence=0.95,
+                                    bbox_xyxy=[0.0, 0.0, float(w), float(h)],
+                                    bbox_normalized=[0.0, 0.0, 1.0, 1.0],
+                                )
+                            )
+            elif "OCR_WITH_REGION" in self.settings.tasks:
                 res = self._run_florence_task(vlm_image, "<OCR_WITH_REGION>")
                 ocr_data = res.get("<OCR_WITH_REGION>", {})
                 quad_boxes = ocr_data.get("quad_boxes", [])

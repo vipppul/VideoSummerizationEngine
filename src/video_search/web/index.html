@@ -351,9 +351,21 @@
         </div>
 
         <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-slate-300 flex items-center justify-between">
+            <span>Sampling Engine</span>
+            <span class="text-[10px] text-emerald-400 font-mono">Real-Time Mode</span>
+          </label>
+          <select id="sampleStrategySelect" class="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-500">
+            <option value="adaptive" selected>⚡ Adaptive Scene-Change (Fastest: ~15s)</option>
+            <option value="fixed_fps">⏱️ Fixed Interval (Samples every interval)</option>
+            <option value="keyframe">🔑 Keyframe Only (I-Frames)</option>
+          </select>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
           <div class="flex justify-between text-xs">
-            <span class="text-slate-300">Frame Sample Interval</span>
-            <span id="sampleValBadge" class="font-mono text-brand-400">1.0s (1 FPS)</span>
+            <span class="text-slate-300">Target Sample Interval (Max Ceiling)</span>
+            <span id="sampleValBadge" class="font-mono text-brand-400">1.0s</span>
           </div>
           <input id="sampleIntervalSlider" type="range" min="0.5" max="3.0" step="0.5" value="1.0" oninput="document.getElementById('sampleValBadge').innerText = this.value + 's'" class="w-full accent-brand-500 cursor-pointer">
         </div>
@@ -870,6 +882,7 @@
       const formData = new FormData();
       formData.append('file', fileInput.files[0]);
       formData.append('video_id', document.getElementById('uploadVideoId').value || '');
+      formData.append('sample_strategy', document.getElementById('sampleStrategySelect').value || 'adaptive');
       formData.append('sample_interval_sec', document.getElementById('sampleIntervalSlider').value);
 
       showModalStatus("Uploading and starting ingestion pipeline...");
@@ -906,6 +919,7 @@
           body: JSON.stringify({
             source_uri: path,
             video_id: videoId || null,
+            sample_strategy: 'adaptive',
             sample_interval_sec: 1.0,
           })
         });

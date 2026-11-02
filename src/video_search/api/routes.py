@@ -59,6 +59,7 @@ def list_videos() -> List[Dict[str, Any]]:
 async def upload_and_ingest(
     file: UploadFile = File(...),
     video_id: Optional[str] = Form(None),
+    sample_strategy: Optional[str] = Form("adaptive"),
     sample_interval_sec: float = Form(1.0),
 ):
     if orchestrator is None:
@@ -75,8 +76,11 @@ async def upload_and_ingest(
 
     vid_id = video_id or Path(filename).stem
     config = IngestConfig(
-        sample_strategy="fixed_fps",
+        sample_strategy=sample_strategy or orchestrator.config.ingestion.sample_strategy or "adaptive",
         sample_interval_sec=sample_interval_sec,
+        scene_threshold=orchestrator.config.ingestion.scene_threshold,
+        min_interval_sec=orchestrator.config.ingestion.min_interval_sec,
+        max_interval_sec=getattr(orchestrator.config.ingestion, "max_interval_sec", 3.0),
     )
     assigned_id = await orchestrator.process_video_async(
         source_uri=str(save_path.resolve()),
@@ -134,8 +138,11 @@ async def ingest_video(req: IngestRequest) -> IngestResponse:
         )
 
     config = IngestConfig(
-        sample_strategy=req.sample_strategy or "fixed_fps",
+        sample_strategy=req.sample_strategy or orchestrator.config.ingestion.sample_strategy or "adaptive",
         sample_interval_sec=req.sample_interval_sec or 1.0,
+        scene_threshold=orchestrator.config.ingestion.scene_threshold,
+        min_interval_sec=orchestrator.config.ingestion.min_interval_sec,
+        max_interval_sec=getattr(orchestrator.config.ingestion, "max_interval_sec", 3.0),
     )
     video_id = await orchestrator.process_video_async(
         source_uri=req.source_uri,
