@@ -4,6 +4,7 @@ FastAPI route definitions for Video Search and Retrieval Engine.
 
 from __future__ import annotations
 import os
+import re
 import shutil
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -170,6 +171,42 @@ def get_video_summary(video_id: str) -> VideoSummaryResponse:
     summary = orchestrator.summary_store.get_summary(video_id)
     if not summary:
         raise HTTPException(status_code=404, detail=f"No summary found for video '{video_id}'")
+
+    # Collect unique cleaned entities across all segments
+    all_entities = set()
+    for s in summary.segments:
+        for ent in s.key_entities:
+            if not ent:
+                continue
+            cleaned = ent
+            if cleaned.startswith("Text:'"):
+                cleaned = cleaned[6:].rstrip("'")
+            if cleaned.startswith("</s>"):
+                cleaned = cleaned[4:].strip()
+            # Skip pure date-time timestamps
+            if re.match(r"^\d{2}-\d{2}-\d{4}", cleaned):
+                continue
+            if len(cleaned) > 1:
+                all_entities.add(cleaned)
+
+    # Produce executive short summary
+    short_summary = ""
+    if query_engine:
+        short_summary = query_engine.get_short_summary(summary)
+
+    if not short_summary:
+        if summary.segments:
+            sentences = []
+            for seg in summary.segments:
+                txt = seg.summary_text
+                txt = re.sub(r"^The image (shows|is a screenshot from)\s*", "", txt, flags=re.IGNORECASE)
+                first_s = txt.split(".")[0].strip()
+                if first_s and first_s not in sentences:
+                    sentences.append(first_s[:1].upper() + first_s[1:])
+            short_summary = ". ".join(sentences[:2]) + "."
+        else:
+            short_summary = summary.narrative[:220]
+
     return VideoSummaryResponse(
         video_id=summary.video_id,
         source_uri=summary.source_uri,
@@ -177,6 +214,8 @@ def get_video_summary(video_id: str) -> VideoSummaryResponse:
         total_frames=summary.total_frames_processed,
         narrative=summary.narrative,
         segments=[s.__dict__ for s in summary.segments],
+        short_summary=short_summary,
+        key_entities=sorted(list(all_entities))[:15],
     )
 
 

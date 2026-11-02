@@ -82,4 +82,6 @@ class VideoSummaryResponse(BaseModel):
     total_frames: int
     narrative: str
     segments: List[Dict[str, Any]]
+    short_summary: Optional[str] = None
+    key_entities: List[str] = Field(default_factory=list)
 

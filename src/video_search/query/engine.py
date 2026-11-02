@@ -235,6 +235,77 @@ class RAGQueryEngine:
             search_metadata={"synthesis_engine": "local_qwen_chat_llm"},
         )
 
+    def get_short_summary(self, summary: Any) -> str:
+        """
+        Produces a concise 2-sentence overview of the whole video
+        via local conversational neural model or smart segment distillation.
+        """
+        if not summary or not getattr(summary, 'narrative', ''):
+            return ''
+
+        vid_id = getattr(summary, 'video_id', '')
+        if not hasattr(self, '_summary_overview_cache'):
+            self._summary_overview_cache = {}
+
+        if vid_id and vid_id in self._summary_overview_cache:
+            return self._summary_overview_cache[vid_id]
+
+        # Use fast local instruction-tuned LLM if available
+        if getattr(self, 'local_llm', None) is not None and getattr(self, 'local_tokenizer', None) is not None:
+            try:
+                import torch
+                clean_nar = re.sub(r'<[^>]+>', '', summary.narrative)
+                clean_nar = re.sub(r'\[\d{2}:\d{2}:\d{2}\s*-\s*\d{2}:\d{2}:\d{2}\]', '', clean_nar).strip()
+                prompt = (
+                    "Summarize what happens across this video in 2 clear, natural sentences based on this narrative:\n"
+                    f"{clean_nar[:1500]}\n\n"
+                    "Concise 2-sentence overview:"
+                )
+                messages = [
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an expert AI video analyst. Output only a concise 2-sentence overview "
+                            "summarizing the main sequence of events, people, and objects. Do not include timestamp tags."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ]
+                formatted = self.local_tokenizer.apply_chat_template(
+                    messages, tokenize=False, add_generation_prompt=True
+                )
+                inputs = self.local_tokenizer(formatted, return_tensors='pt').to(self.local_llm.device)
+                with torch.no_grad():
+                    outputs = self.local_llm.generate(
+                        **inputs,
+                        max_new_tokens=90,
+                        do_sample=False,
+                        temperature=0.0,
+                        pad_token_id=self.local_tokenizer.eos_token_id,
+                    )
+                gen_tokens = outputs[0][inputs.input_ids.shape[1]:]
+                ans = self.local_tokenizer.decode(gen_tokens, skip_special_tokens=True).strip()
+                ans = re.sub(r'\[\d{2}:\d{2}:\d{2}\s*-\s*\d{2}:\d{2}:\d{2}\]', '', ans).strip()
+                if ans and len(ans) > 20:
+                    self._summary_overview_cache[vid_id] = ans
+                    return ans
+            except Exception as e:
+                logger.warning(f"Local LLM overview generation error: {e}")
+
+        # Smart fallback distillation from segments
+        if getattr(summary, 'segments', None):
+            first_sentences = []
+            for s in summary.segments:
+                cleaned = re.sub(r"^The image (shows|is a screenshot from)\s*", "", s.summary_text, flags=re.IGNORECASE)
+                first = cleaned.split('.')[0].strip()
+                if first and first not in first_sentences:
+                    first_sentences.append(first[:1].upper() + first[1:])
+            overview = ". ".join(first_sentences[:2]) + "."
+            self._summary_overview_cache[vid_id] = overview
+            return overview
+
+        return summary.narrative[:220]
+
     def _call_llm(self, prompt: str) -> str:
         """Invokes LLM and returns response text."""
         if self.llm_client is None:
