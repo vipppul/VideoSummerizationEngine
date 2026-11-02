@@ -89,8 +89,9 @@ class VisionLanguageModel:
             generated_ids = self.model.generate(
                 input_ids=inputs["input_ids"],
                 pixel_values=inputs["pixel_values"],
-                max_new_tokens=self.settings.max_new_tokens,
-                num_beams=3,
+                max_new_tokens=min(self.settings.max_new_tokens, 256),
+                num_beams=1,
+                early_stopping=False,
                 do_sample=False,
             )
 
@@ -162,6 +163,17 @@ class VisionLanguageModel:
         pil_image = Image.fromarray(rgb_image)
         w, h = frame.width, frame.height
 
+        # Optimization: Downscale high-res frames for VLM to max 1024px to prevent quadratic vision attention overhead
+        max_vlm_dim = 1024
+        orig_w, orig_h = pil_image.size
+        if max(orig_w, orig_h) > max_vlm_dim:
+            scale = max_vlm_dim / max(orig_w, orig_h)
+            new_w, new_h = int(orig_w * scale), int(orig_h * scale)
+            vlm_image = pil_image.resize((new_w, new_h), Image.Resampling.BILINEAR)
+        else:
+            vlm_image = pil_image
+            new_w, new_h = orig_w, orig_h
+
         detailed_caption = ""
         region_captions: List[RegionCaption] = []
         ocr_results: List[OCRResult] = []
@@ -169,44 +181,43 @@ class VisionLanguageModel:
         try:
             # 1. Detailed Caption
             if "MORE_DETAILED_CAPTION" in self.settings.tasks:
-                res = self._run_florence_task(pil_image, "<MORE_DETAILED_CAPTION>")
+                res = self._run_florence_task(vlm_image, "<MORE_DETAILED_CAPTION>")
                 detailed_caption = res.get("<MORE_DETAILED_CAPTION>", "")
 
-            # 2. Dense Region Caption
+            # 2. Dense Region Caption (skipped if disabled in config)
             if "DENSE_REGION_CAPTION" in self.settings.tasks:
-                res = self._run_florence_task(pil_image, "<DENSE_REGION_CAPTION>")
+                res = self._run_florence_task(vlm_image, "<DENSE_REGION_CAPTION>")
                 dense_data = res.get("<DENSE_REGION_CAPTION>", {})
                 bboxes = dense_data.get("bboxes", [])
                 labels = dense_data.get("labels", [])
                 for box, lbl in zip(bboxes, labels):
                     x1, y1, x2, y2 = [float(b) for b in box]
-                    norm_box = [x1 / w, y1 / h, x2 / w, y2 / h]
+                    norm_box = [x1 / new_w, y1 / new_h, x2 / new_w, y2 / new_h]
                     region_captions.append(
                         RegionCaption(
                             caption=lbl,
-                            bbox_xyxy=[x1, y1, x2, y2],
+                            bbox_xyxy=[norm_box[0] * w, norm_box[1] * h, norm_box[2] * w, norm_box[3] * h],
                             bbox_normalized=norm_box,
                         )
                     )
 
             # 3. OCR With Regions
             if "OCR_WITH_REGION" in self.settings.tasks:
-                res = self._run_florence_task(pil_image, "<OCR_WITH_REGION>")
+                res = self._run_florence_task(vlm_image, "<OCR_WITH_REGION>")
                 ocr_data = res.get("<OCR_WITH_REGION>", {})
                 quad_boxes = ocr_data.get("quad_boxes", [])
                 labels = ocr_data.get("labels", [])
                 for quad, text in zip(quad_boxes, labels):
-                    # quad is [x1, y1, x2, y2, x3, y3, x4, y4]
                     xs = quad[0::2]
                     ys = quad[1::2]
                     x1, x2 = float(min(xs)), float(max(xs))
                     y1, y2 = float(min(ys)), float(max(ys))
-                    norm_box = [x1 / w, y1 / h, x2 / w, y2 / h]
+                    norm_box = [x1 / new_w, y1 / new_h, x2 / new_w, y2 / new_h]
                     ocr_results.append(
                         OCRResult(
                             text=str(text).strip(),
                             confidence=0.9,
-                            bbox_xyxy=[x1, y1, x2, y2],
+                            bbox_xyxy=[norm_box[0] * w, norm_box[1] * h, norm_box[2] * w, norm_box[3] * h],
                             bbox_normalized=norm_box,
                         )
                     )
@@ -239,6 +250,11 @@ class VisionLanguageModel:
         if pil_img is None:
             return ""
 
+        # Optimization: Downscale high-res frames for VQA to max 1024px
+        if max(pil_img.size) > 1024:
+            scale = 1024 / max(pil_img.size)
+            pil_img = pil_img.resize((int(pil_img.width * scale), int(pil_img.height * scale)), Image.Resampling.BILINEAR)
+
         try:
             # Check if this is a text, plate, or OCR question
             q_lower = question.lower()
@@ -256,7 +272,8 @@ class VisionLanguageModel:
                     input_ids=inputs["input_ids"],
                     pixel_values=inputs["pixel_values"],
                     max_new_tokens=128,
-                    num_beams=3,
+                    num_beams=1,
+                    early_stopping=False,
                     do_sample=False,
                 )
 
@@ -287,7 +304,8 @@ class VisionLanguageModel:
                             input_ids=fallback_inputs["input_ids"],
                             pixel_values=fallback_inputs["pixel_values"],
                             max_new_tokens=64,
-                            num_beams=3,
+                            num_beams=1,
+                            early_stopping=False,
                             do_sample=False,
                         )
                     fb_gen = self.processor.batch_decode(fb_ids, skip_special_tokens=False)[0]

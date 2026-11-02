@@ -27,11 +27,10 @@ detection:
 vlm:
   model: "microsoft/Florence-2-large"     # microsoft/Florence-2-base or large
   device: "cuda:0"
-  max_new_tokens: 1024
+  max_new_tokens: 512
   batch_size: 4
   tasks:
     - "MORE_DETAILED_CAPTION"
-    - "DENSE_REGION_CAPTION"
     - "OCR_WITH_REGION"
   parallel_tasks: false
   fallback_to_heuristic: true           # If Florence-2 cannot be loaded on low VRAM, graceful fallback

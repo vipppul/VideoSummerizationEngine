@@ -40,12 +40,11 @@ class DetectionSettings(BaseModel):
 class VLMSettings(BaseModel):
     model: str = "microsoft/Florence-2-base"
     device: str = "cuda:0"
-    max_new_tokens: int = 1024
+    max_new_tokens: int = 512
     batch_size: int = 4
     tasks: List[str] = Field(
         default_factory=lambda: [
             "MORE_DETAILED_CAPTION",
-            "DENSE_REGION_CAPTION",
             "OCR_WITH_REGION",
         ]
     )
