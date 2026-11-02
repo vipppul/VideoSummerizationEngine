@@ -39,30 +39,29 @@
     }
   </script>
   <style>
-    body { background-color: #08090d; color: #e2e8f0; }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #0c0e14; }
-    ::-webkit-scrollbar-thumb { background: #262c3f; border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: #3b4461; }
-    .glass { background: rgba(18, 20, 28, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.07); }
+    body { background-color: #07080c; color: #e2e8f0; height: 100vh; overflow: hidden; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: rgba(12, 14, 20, 0.4); }
+    ::-webkit-scrollbar-thumb { background: #262c3f; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
+    .glass { background: rgba(18, 20, 28, 0.78); backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.08); }
     .pulse-dot { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(0.85); } }
   </style>
 </head>
-<body class="min-h-screen flex flex-col font-sans antialiased text-slate-200">
+<body class="h-screen max-h-screen overflow-hidden flex flex-col font-sans antialiased text-slate-200">
 
   <!-- TOP NAVIGATION HEADER -->
-  <header class="sticky top-0 z-40 border-b border-surface-border bg-surface/80 backdrop-blur-xl px-6 py-3.5 flex items-center justify-between">
+  <header class="h-14 flex-shrink-0 border-b border-surface-border bg-surface/90 backdrop-blur-xl px-5 flex items-center justify-between z-40">
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
-        <i data-lucide="video" class="w-5 h-5 text-white"></i>
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-brand-500/25">
+        <i data-lucide="video" class="w-4 h-4 text-white"></i>
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <span class="font-bold text-base tracking-tight text-white">AETHER VIDEO</span>
-          <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-semibold">VLM 2.0</span>
+          <span class="font-bold text-sm tracking-tight text-white">AETHER VIDEO</span>
+          <span class="text-[9px] font-mono uppercase px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-semibold">VLM 2.0</span>
         </div>
-        <p class="text-xs text-slate-400">Multimodal Summarization & Semantic Retrieval Engine</p>
       </div>
     </div>
 
@@ -70,173 +69,203 @@
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-card border border-surface-border text-xs">
         <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
-        <span class="text-slate-400">Selected Video:</span>
-        <select id="videoSelect" class="bg-transparent text-white font-medium focus:outline-none cursor-pointer max-w-[180px] truncate" onchange="switchVideo(this.value)">
+        <span class="text-slate-400 text-[11px]">Selected Video:</span>
+        <select id="videoSelect" class="bg-transparent text-white font-medium focus:outline-none cursor-pointer max-w-[200px] truncate text-xs" onchange="switchVideo(this.value)">
           <option value="" disabled selected>Loading videos...</option>
         </select>
       </div>
 
-      <button onclick="openIngestModal()" class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 transition-all font-medium text-xs text-white shadow-lg shadow-brand-600/30 active:scale-95">
-        <i data-lucide="plus" class="w-4 h-4"></i>
+      <button onclick="openIngestModal()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 transition-all font-medium text-xs text-white shadow-lg shadow-brand-600/30 active:scale-95">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
         <span>Ingest Video</span>
       </button>
     </div>
   </header>
 
-  <!-- MAIN APPLICATION CONTENT -->
-  <main class="flex-1 max-w-[1720px] w-full mx-auto p-5 grid grid-cols-1 lg:grid-cols-12 gap-5">
+  <!-- MAIN APPLICATION CONTENT: Full viewport height minus header, strictly overflow-hidden -->
+  <main class="flex-1 h-[calc(100vh-3.5rem)] max-w-[1850px] w-full mx-auto p-3.5 grid grid-cols-1 lg:grid-cols-12 gap-3.5 overflow-hidden">
 
-    <!-- LEFT COLUMN: VIDEO PLAYER, TIMELINE & NARRATIVE (7 Cols) -->
-    <div class="lg:col-span-7 flex flex-col gap-5">
+    <!-- LEFT COLUMN: PINNED COMPACT VIDEO & SCROLLABLE SUMMARY CARD (7 Cols) -->
+    <div class="lg:col-span-7 flex flex-col h-full overflow-hidden gap-3 min-h-0">
       
-      <!-- Video Player Card -->
-      <div class="glass rounded-2xl overflow-hidden flex flex-col shadow-2xl relative group">
-        <div class="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
+      <!-- 1. Compact Video Player Card (Fixed at top, never scrolls) -->
+      <div class="flex-shrink-0 glass rounded-2xl overflow-hidden shadow-2xl flex flex-col border border-surface-border">
+        <!-- Compact Video Container -->
+        <div class="relative bg-black w-full h-[250px] sm:h-[275px] md:h-[295px] flex items-center justify-center overflow-hidden">
           <video id="mainVideoPlayer" controls class="w-full h-full object-contain" preload="metadata">
             <source id="videoSource" src="" type="video/mp4">
             Your browser does not support the video tag.
           </video>
-          <div id="noVideoOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-surface-card/90 gap-3 text-center p-6">
-            <div class="w-14 h-14 rounded-2xl bg-surface-hover border border-surface-border flex items-center justify-center text-slate-400">
-              <i data-lucide="film" class="w-7 h-7"></i>
+          <div id="noVideoOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-surface-card/95 gap-3 text-center p-6">
+            <div class="w-12 h-12 rounded-2xl bg-surface-hover border border-surface-border flex items-center justify-center text-slate-400">
+              <i data-lucide="film" class="w-6 h-6"></i>
             </div>
-            <h3 class="font-semibold text-white">No Video Loaded</h3>
-            <p class="text-xs text-slate-400 max-w-sm">Select an analyzed video from the top bar or ingest a new video file to explore multimodal search.</p>
-            <button onclick="openIngestModal()" class="mt-2 px-4 py-2 text-xs bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition">
+            <h3 class="font-semibold text-white text-sm">No Video Loaded</h3>
+            <p class="text-xs text-slate-400 max-w-sm">Select an analyzed video from the top bar or ingest a new video to explore multimodal search.</p>
+            <button onclick="openIngestModal()" class="mt-1 px-3.5 py-1.5 text-xs bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition shadow-lg shadow-brand-600/30">
               Ingest Your First Video
             </button>
           </div>
         </div>
 
-        <!-- Video Controls Bar / Status -->
-        <div class="px-5 py-3 border-t border-surface-border flex items-center justify-between text-xs bg-surface-card">
-          <div class="flex items-center gap-3">
-            <span id="currentVideoTitle" class="font-semibold text-white truncate max-w-xs">No Active Video</span>
-            <span id="videoDurationBadge" class="font-mono text-slate-400 px-2 py-0.5 rounded bg-surface-hover">00:00:00</span>
+        <!-- Video Info & Tech Stack Bar -->
+        <div class="px-4 py-2 border-t border-surface-border flex items-center justify-between text-xs bg-surface-card/90">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span id="currentVideoTitle" class="font-semibold text-white truncate max-w-xs text-xs">No Active Video</span>
+            <span id="videoDurationBadge" class="font-mono text-brand-300 px-2 py-0.5 rounded bg-brand-500/10 border border-brand-500/20 text-[11px]">00:00:00</span>
           </div>
-          <div class="flex items-center gap-2 text-slate-400 text-[11px]">
-            <span class="flex items-center gap-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-brand-400"></i> YOLOv8</span>
+          <div class="flex items-center gap-2 text-slate-400 text-[11px] flex-shrink-0">
+            <span class="flex items-center gap-1 text-slate-300"><i data-lucide="cpu" class="w-3.5 h-3.5 text-brand-400"></i> YOLOv8</span>
             <span>•</span>
-            <span class="flex items-center gap-1"><i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i> Florence-2 VLM</span>
+            <span class="flex items-center gap-1 text-slate-300"><i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i> Florence-2</span>
             <span>•</span>
-            <span class="flex items-center gap-1"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i> CLIP ViT-B/32</span>
+            <span class="flex items-center gap-1 text-slate-300"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i> Qwen Chat</span>
           </div>
         </div>
       </div>
 
-      <!-- Chronological Summary Card -->
-      <div class="glass rounded-2xl p-5 flex flex-col gap-3 shadow-xl">
-        <div class="flex items-center justify-between">
+      <!-- 2. Summary & Intelligence Card (Fills remaining height, ONLY this card scrolls) -->
+      <div class="flex-1 min-h-0 glass rounded-2xl p-4 flex flex-col shadow-2xl border border-surface-border overflow-hidden">
+        
+        <!-- Summary Header with Section Badges -->
+        <div class="flex-shrink-0 flex items-center justify-between pb-3 border-b border-surface-border">
           <div class="flex items-center gap-2">
-            <i data-lucide="book-open" class="w-4 h-4 text-brand-400"></i>
-            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Chronological Narrative Summary</h3>
+            <div class="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-400 flex items-center justify-center border border-brand-500/20">
+              <i data-lucide="book-open" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-bold text-white uppercase tracking-wider">Video Intelligence & Narrative</h3>
+              <p class="text-[10px] text-slate-400">Chronological analysis, timeline chapters, and frame evidence</p>
+            </div>
           </div>
-          <span id="segmentCountBadge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-surface-hover text-slate-400">0 Segments</span>
-        </div>
-
-        <div id="narrativeContainer" class="bg-surface/50 border border-surface-border rounded-xl p-4 text-xs leading-relaxed text-slate-300 font-sans max-h-48 overflow-y-auto whitespace-pre-line">
-          Select or ingest a video to view its automated chronological narrative summary.
-        </div>
-
-        <!-- Interactive Timeline Segments -->
-        <div id="segmentsList" class="flex flex-col gap-2 max-h-56 overflow-y-auto mt-1">
-          <!-- Dynamically populated segment items -->
-        </div>
-      </div>
-
-      <!-- Evidence Frames Carousel / Gallery -->
-      <div class="glass rounded-2xl p-5 flex flex-col gap-3 shadow-xl">
-        <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <i data-lucide="images" class="w-4 h-4 text-brand-400"></i>
-            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Evidence Frames Gallery</h3>
+            <span id="segmentCountBadge" class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20 font-semibold">0 Segments</span>
           </div>
-          <span id="evidenceCountBadge" class="text-[11px] font-mono text-slate-400">Click to seek video</span>
         </div>
-        <div id="evidenceFramesGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 overflow-y-auto max-h-48">
-          <div class="col-span-full py-8 text-center text-xs text-slate-500">
-            Ask a question or search to view matching visual evidence frames.
+
+        <!-- Scrollable Inner Content: Narrative + Segments + Evidence -->
+        <div class="flex-1 min-h-0 overflow-y-auto pr-1.5 space-y-4 pt-3">
+          
+          <!-- Narrative Section -->
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-brand-400"></i> Chronological Narrative
+              </span>
+            </div>
+            <div id="narrativeContainer" class="bg-surface/60 border border-surface-border rounded-xl p-3.5 text-xs leading-relaxed text-slate-300 font-sans whitespace-pre-line shadow-inner">
+              Select or ingest a video to view its automated chronological narrative summary.
+            </div>
           </div>
+
+          <!-- Interactive Timeline Segments Section -->
+          <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                <i data-lucide="clock" class="w-3.5 h-3.5 text-indigo-400"></i> Timeline Chapters (Click to Seek)
+              </span>
+            </div>
+            <div id="segmentsList" class="flex flex-col gap-2">
+              <!-- Dynamically populated segment items -->
+            </div>
+          </div>
+
+          <!-- Evidence Frames Gallery Section -->
+          <div class="flex flex-col gap-2 pt-2 border-t border-surface-border">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+                <i data-lucide="images" class="w-3.5 h-3.5 text-purple-400"></i> Evidence Frames
+              </span>
+              <span id="evidenceCountBadge" class="text-[10px] font-mono text-slate-400">Click thumbnail to seek</span>
+            </div>
+            <div id="evidenceFramesGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div class="col-span-full py-4 text-center text-xs text-slate-500">
+                Ask a question or search to view matching visual evidence frames.
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
     </div>
 
-    <!-- RIGHT COLUMN: MULTIMODAL CONVERSATION & SEMANTIC SEARCH (5 Cols) -->
-    <div class="lg:col-span-5 flex flex-col gap-4">
+    <!-- RIGHT COLUMN: INDEPENDENT FULL-HEIGHT CHAT & SEARCH PANEL (5 Cols) -->
+    <div class="lg:col-span-5 flex flex-col h-full overflow-hidden min-h-0 glass rounded-2xl shadow-2xl border border-surface-border">
       
-      <div class="glass rounded-2xl flex-1 flex flex-col shadow-2xl overflow-hidden min-h-[680px]">
+      <!-- Top Tab Switcher & Actions -->
+      <div class="flex-shrink-0 p-2.5 border-b border-surface-border bg-surface-card/90 flex items-center justify-between gap-2">
+        <div class="flex items-center bg-surface/80 p-1 rounded-xl border border-surface-border flex-1">
+          <button id="tabChatBtn" onclick="switchRightTab('chat')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition flex items-center justify-center gap-2 shadow-sm">
+            <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+            <span>Multimodal Chat (Q&A)</span>
+          </button>
+          <button id="tabSearchBtn" onclick="switchRightTab('search')" class="flex-1 py-1.5 text-xs font-medium text-slate-400 hover:text-white rounded-lg transition flex items-center justify-center gap-2">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            <span>Semantic Search</span>
+          </button>
+        </div>
+        <button onclick="clearChat()" title="Clear Chat History" class="p-2 rounded-xl bg-surface hover:bg-surface-hover text-slate-400 hover:text-white border border-surface-border transition flex items-center justify-center">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <!-- TAB 1: INDEPENDENT SCROLLABLE CHAT PANE -->
+      <div id="chatPane" class="flex-1 min-h-0 flex flex-col justify-between overflow-hidden">
         
-        <!-- Tab Selector -->
-        <div class="p-3 border-b border-surface-border bg-surface-card flex items-center justify-between gap-2">
-          <div class="flex items-center bg-surface/80 p-1 rounded-xl border border-surface-border w-full">
-            <button id="tabChatBtn" onclick="switchRightTab('chat')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition flex items-center justify-center gap-2">
-              <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
-              <span>VLM Assistant (Q&A)</span>
-            </button>
-            <button id="tabSearchBtn" onclick="switchRightTab('search')" class="flex-1 py-1.5 text-xs font-medium text-slate-400 hover:text-white rounded-lg transition flex items-center justify-center gap-2">
-              <i data-lucide="search" class="w-3.5 h-3.5"></i>
-              <span>Semantic Search</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- TAB 1: CONVERSATIONAL VLM ASSISTANT -->
-        <div id="chatPane" class="flex-1 flex flex-col justify-between overflow-hidden">
-          
-          <!-- Chat Message Thread -->
-          <div id="chatMessages" class="flex-1 p-4 overflow-y-auto flex flex-col gap-4">
-            <!-- Welcome Bot Message -->
-            <div class="flex gap-3">
-              <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-purple-600 flex-shrink-0 flex items-center justify-center text-white">
-                <i data-lucide="sparkles" class="w-4 h-4"></i>
+        <!-- Chat Message Thread (Scrollable) -->
+        <div id="chatMessages" class="flex-1 min-h-0 p-4 overflow-y-auto flex flex-col gap-3.5 space-y-1">
+          <!-- Welcome Message -->
+          <div class="flex gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-purple-600 flex-shrink-0 flex items-center justify-center text-white shadow-md">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+            </div>
+            <div class="flex flex-col gap-1.5 max-w-[85%]">
+              <div class="bg-surface-card border border-surface-border rounded-2xl rounded-tl-sm p-3.5 text-xs leading-relaxed text-slate-200 shadow-md">
+                Hello! I am your Multimodal Video Assistant. I combine Florence-2 vision features and local Qwen chat reasoning to answer questions about visual elements, colors, actions, text/plates, and timestamps.
               </div>
-              <div class="flex flex-col gap-1.5 max-w-[85%]">
-                <div class="bg-surface-card border border-surface-border rounded-2xl rounded-tl-sm p-3.5 text-xs leading-relaxed text-slate-200">
-                  Hello! I am your Multimodal Video Assistant. I inspect your video using Florence-2 VLM and YOLO object detection to answer arbitrary questions with exact timestamps.
-                  <div class="mt-3 pt-3 border-t border-surface-border flex flex-wrap gap-1.5">
-                    <span class="text-[10px] text-slate-400 w-full mb-1">Try asking:</span>
-                    <button onclick="askPrompt(this.innerText)" class="px-2.5 py-1 rounded-md bg-surface-hover hover:bg-brand-500/20 hover:text-brand-300 text-[11px] text-slate-300 border border-surface-border transition">When does the vehicle with license plate ABC-1234 appear?</button>
-                    <button onclick="askPrompt(this.innerText)" class="px-2.5 py-1 rounded-md bg-surface-hover hover:bg-brand-500/20 hover:text-brand-300 text-[11px] text-slate-300 border border-surface-border transition">What is the pedestrian doing?</button>
-                    <button onclick="askPrompt(this.innerText)" class="px-2.5 py-1 rounded-md bg-surface-hover hover:bg-brand-500/20 hover:text-brand-300 text-[11px] text-slate-300 border border-surface-border transition">What happens between 4 and 8 seconds?</button>
-                  </div>
-                </div>
-                <span class="text-[10px] text-slate-500 font-mono">Engine Ready</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Chat Input Bar -->
-          <div class="p-4 border-t border-surface-border bg-surface-card/60">
-            <form onsubmit="handleChatSubmit(event)" class="relative flex items-center">
-              <input id="chatInput" type="text" placeholder="Ask anything about the video scene, objects, or text..." class="w-full bg-surface border border-surface-border rounded-xl pl-4 pr-12 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
-              <button type="submit" id="sendBtn" class="absolute right-2.5 w-8 h-8 rounded-lg bg-brand-600 hover:bg-brand-500 flex items-center justify-center text-white transition active:scale-95 disabled:opacity-50">
-                <i data-lucide="arrow-up" class="w-4 h-4"></i>
-              </button>
-            </form>
-          </div>
-        </div>
-
-        <!-- TAB 2: SEMANTIC SEARCH & EXPLORER -->
-        <div id="searchPane" class="flex-1 flex flex-col overflow-hidden hidden">
-          <div class="p-4 border-b border-surface-border bg-surface-card/40 flex flex-col gap-2">
-            <div class="relative">
-              <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
-              <input id="searchInput" type="text" placeholder="Search visual concepts (e.g. 'red car', 'crosswalk', 'EXIT')..." onkeydown="if(event.key==='Enter') executeSemanticSearch()" class="w-full bg-surface border border-surface-border rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
-            </div>
-            <div class="flex items-center justify-between text-[11px] text-slate-400">
-              <span id="searchResultCount">0 frames matching</span>
-              <button onclick="executeSemanticSearch()" class="px-3 py-1 bg-surface-hover hover:bg-surface-border text-slate-200 rounded-md font-medium text-xs">Search Index</button>
-            </div>
-          </div>
-
-          <div id="searchResultsList" class="flex-1 p-4 overflow-y-auto flex flex-col gap-3">
-            <div class="text-center text-xs text-slate-500 py-12">
-              Enter a search query above to explore frames ranked by multimodal cosine similarity.
+              <span class="text-[10px] text-slate-500 font-mono">Conversational Neural Assistant Ready</span>
             </div>
           </div>
         </div>
 
+        <!-- Suggestion Chips Bar -->
+        <div class="px-3.5 py-2 border-t border-surface-border/60 bg-surface/40 flex items-center gap-1.5 overflow-x-auto text-[11px] flex-shrink-0">
+          <span class="text-[10px] text-slate-400 font-medium flex-shrink-0 flex items-center gap-1"><i data-lucide="zap" class="w-3 h-3 text-amber-400"></i> Try:</span>
+          <button onclick="askPrompt('Summarize the main events in this video')" class="px-2.5 py-0.5 rounded-full bg-surface-hover hover:bg-brand-500/20 hover:text-brand-300 text-slate-300 border border-surface-border flex-shrink-0 transition">Summarize events</button>
+          <button onclick="askPrompt('What vehicles or people appear?')" class="px-2.5 py-0.5 rounded-full bg-surface-hover hover:bg-brand-500/20 hover:text-brand-300 text-slate-300 border border-surface-border flex-shrink-0 transition">Vehicles & people</button>
+          <button onclick="askPrompt('Are there any safety hazards, fire, or anomalies?')" class="px-2.5 py-0.5 rounded-full bg-surface-hover hover:bg-brand-500/20 hover:text-brand-300 text-slate-300 border border-surface-border flex-shrink-0 transition">Safety hazards</button>
+        </div>
+
+        <!-- Pinned Chat Input Bar -->
+        <div class="p-3 border-t border-surface-border bg-surface-card/90 flex-shrink-0">
+          <form onsubmit="handleChatSubmit(event)" class="relative flex items-center">
+            <input id="chatInput" type="text" placeholder="Ask anything about the video scene, objects, or text..." class="w-full bg-surface border border-surface-border rounded-xl pl-4 pr-12 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition shadow-inner">
+            <button type="submit" id="sendBtn" class="absolute right-2 w-7 h-7 rounded-lg bg-brand-600 hover:bg-brand-500 flex items-center justify-center text-white transition active:scale-95 disabled:opacity-50 shadow-md">
+              <i data-lucide="arrow-up" class="w-4 h-4"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- TAB 2: SEMANTIC SEARCH & EXPLORER -->
+      <div id="searchPane" class="flex-1 min-h-0 flex flex-col overflow-hidden hidden">
+        <div class="p-3 border-b border-surface-border bg-surface-card/70 flex flex-col gap-2 flex-shrink-0">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-slate-400"></i>
+            <input id="searchInput" type="text" placeholder="Search visual concepts (e.g. 'fire', 'red car', 'license plate')..." onkeydown="if(event.key==='Enter') executeSemanticSearch()" class="w-full bg-surface border border-surface-border rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+          </div>
+          <div class="flex items-center justify-between text-[11px] text-slate-400">
+            <span id="searchResultCount">0 frames matching</span>
+            <button onclick="executeSemanticSearch()" class="px-3 py-1 bg-brand-600 hover:bg-brand-500 text-white rounded-md font-medium text-xs transition">Search Index</button>
+          </div>
+        </div>
+
+        <div id="searchResultsList" class="flex-1 min-h-0 p-3 overflow-y-auto flex flex-col gap-2.5">
+          <div class="text-center text-xs text-slate-500 py-12">
+            Enter a search query above to explore frames ranked by multimodal cosine similarity.
+          </div>
+        </div>
       </div>
 
     </div>
@@ -412,18 +441,21 @@
     function renderSegments(segments) {
       const list = document.getElementById('segmentsList');
       list.innerHTML = '';
-      if (!segments || segments.length === 0) return;
+      if (!segments || segments.length === 0) {
+        list.innerHTML = '<div class="text-[11px] text-slate-500 py-2">No timeline chapters generated.</div>';
+        return;
+      }
 
       segments.forEach((seg, idx) => {
         const div = document.createElement('div');
-        div.className = "flex items-start gap-3 p-2.5 rounded-xl bg-surface/40 hover:bg-surface-hover border border-surface-border cursor-pointer transition text-xs group";
+        div.className = "flex items-start gap-2.5 p-2 rounded-xl bg-surface/50 hover:bg-surface-hover border border-surface-border cursor-pointer transition text-xs group";
         div.onclick = () => seekVideo(seg.start_sec);
 
         div.innerHTML = `
-          <button class="px-2 py-1 rounded bg-brand-600/20 text-brand-300 font-mono text-[11px] font-semibold flex-shrink-0 group-hover:bg-brand-600 group-hover:text-white transition">
+          <button class="px-2 py-0.5 rounded bg-brand-600/20 text-brand-300 font-mono text-[10px] font-semibold flex-shrink-0 group-hover:bg-brand-600 group-hover:text-white transition">
             ${formatSeconds(seg.start_sec)} - ${formatSeconds(seg.end_sec)}
           </button>
-          <div class="flex-1 leading-snug text-slate-300">
+          <div class="flex-1 leading-snug text-slate-300 text-[11px]">
             ${seg.summary_text}
           </div>
         `;
@@ -456,12 +488,12 @@
       if (tab === 'chat') {
         chatPane.classList.remove('hidden');
         searchPane.classList.add('hidden');
-        tabChatBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition flex items-center justify-center gap-2";
+        tabChatBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition flex items-center justify-center gap-2 shadow-sm";
         tabSearchBtn.className = "flex-1 py-1.5 text-xs font-medium text-slate-400 hover:text-white rounded-lg transition flex items-center justify-center gap-2";
       } else {
         chatPane.classList.add('hidden');
         searchPane.classList.remove('hidden');
-        tabSearchBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition flex items-center justify-center gap-2";
+        tabSearchBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition flex items-center justify-center gap-2 shadow-sm";
         tabChatBtn.className = "flex-1 py-1.5 text-xs font-medium text-slate-400 hover:text-white rounded-lg transition flex items-center justify-center gap-2";
       }
     }
@@ -469,6 +501,24 @@
     function askPrompt(text) {
       document.getElementById('chatInput').value = text;
       handleChatSubmit(new Event('submit'));
+    }
+
+    function clearChat() {
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = `
+        <div class="flex gap-3">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-purple-600 flex-shrink-0 flex items-center justify-center text-white shadow-md">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+          </div>
+          <div class="flex flex-col gap-1.5 max-w-[85%]">
+            <div class="bg-surface-card border border-surface-border rounded-2xl rounded-tl-sm p-3.5 text-xs leading-relaxed text-slate-200 shadow-md">
+              Chat session cleared. Ask any question about the video's events, entities, or timestamps!
+            </div>
+            <span class="text-[10px] text-slate-500 font-mono">Conversational Neural Assistant Ready</span>
+          </div>
+        </div>
+      `;
+      lucide.createIcons();
     }
 
     async function handleChatSubmit(e) {
@@ -527,11 +577,11 @@
       div.id = id;
       div.className = "flex gap-3";
       div.innerHTML = `
-        <div class="w-8 h-8 rounded-lg bg-surface-card border border-surface-border flex items-center justify-center text-brand-400 animate-spin">
+        <div class="w-8 h-8 rounded-lg bg-surface-card border border-surface-border flex items-center justify-center text-brand-400 animate-spin flex-shrink-0">
           <i data-lucide="loader-2" class="w-4 h-4"></i>
         </div>
-        <div class="bg-surface-card border border-surface-border rounded-2xl rounded-tl-sm p-3 text-xs text-slate-400 flex items-center gap-2">
-          <span>Florence-2 VLM inspecting frames...</span>
+        <div class="bg-surface-card border border-surface-border rounded-2xl rounded-tl-sm p-3 text-xs text-slate-400 flex items-center gap-2 shadow-sm">
+          <span>Neural assistant inspecting video evidence...</span>
         </div>
       `;
       container.appendChild(div);
@@ -557,7 +607,7 @@
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cited Timestamps:</span>
             <div class="flex flex-wrap gap-1.5">
               ${data.timestamps.map(t => `
-                <button onclick="seekVideo(${t.time_sec})" class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-brand-500/10 hover:bg-brand-500 text-brand-300 hover:text-white border border-brand-500/20 text-[11px] font-mono transition">
+                <button onclick="seekVideo(${t.time_sec})" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-500/10 hover:bg-brand-500 text-brand-300 hover:text-white border border-brand-500/20 text-[11px] font-mono transition shadow-sm">
                   <i data-lucide="play" class="w-3 h-3"></i>
                   <span>${t.time_formatted || t.time_sec.toFixed(2) + 's'}</span>
                 </button>
@@ -568,11 +618,11 @@
       }
 
       div.innerHTML = `
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-purple-600 flex-shrink-0 flex items-center justify-center text-white">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-purple-600 flex-shrink-0 flex items-center justify-center text-white shadow-md">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
         </div>
         <div class="flex flex-col gap-1 max-w-[85%]">
-          <div class="bg-surface-card border border-surface-border rounded-2xl rounded-tl-sm p-3.5 text-xs leading-relaxed text-slate-200">
+          <div class="bg-surface-card border border-surface-border rounded-2xl rounded-tl-sm p-3.5 text-xs leading-relaxed text-slate-200 shadow-md">
             ${data.answer}
             ${timestampsHtml}
           </div>
@@ -589,7 +639,7 @@
       const div = document.createElement('div');
       div.className = "flex gap-3";
       div.innerHTML = `
-        <div class="bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl p-3 text-xs w-full">
+        <div class="bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl p-3 text-xs w-full shadow-sm">
           <strong>Error:</strong> ${msg}
         </div>
       `;
@@ -600,11 +650,14 @@
     function renderEvidenceFrames(frames) {
       const grid = document.getElementById('evidenceFramesGrid');
       grid.innerHTML = '';
-      if (!frames || frames.length === 0) return;
+      if (!frames || frames.length === 0) {
+        grid.innerHTML = '<div class="col-span-full py-3 text-center text-xs text-slate-500">No frames found.</div>';
+        return;
+      }
 
       frames.slice(0, 8).forEach(f => {
         const card = document.createElement('div');
-        card.className = "relative rounded-xl overflow-hidden bg-surface-card border border-surface-border cursor-pointer group hover:border-brand-500 transition aspect-video flex items-center justify-center";
+        card.className = "relative rounded-xl overflow-hidden bg-surface-card border border-surface-border cursor-pointer group hover:border-brand-500 transition aspect-video flex items-center justify-center shadow-md";
         card.onclick = () => seekVideo(f.timestamp_sec);
 
         card.innerHTML = `
@@ -645,7 +698,7 @@
 
           data.results.forEach(r => {
             const card = document.createElement('div');
-            card.className = "p-3 rounded-xl bg-surface-card border border-surface-border hover:border-brand-500/50 cursor-pointer transition flex gap-3 text-xs";
+            card.className = "p-2.5 rounded-xl bg-surface-card border border-surface-border hover:border-brand-500/50 cursor-pointer transition flex gap-3 text-xs shadow-sm";
             card.onclick = () => seekVideo(r.timestamp_sec);
 
             card.innerHTML = `
@@ -654,7 +707,7 @@
                 <span class="absolute bottom-1 right-1 text-[9px] font-mono bg-black/70 text-white px-1 rounded">${r.timestamp_formatted}</span>
               </div>
               <div class="flex-1 flex flex-col justify-between">
-                <div class="text-slate-200 line-clamp-2 leading-snug">${r.frame_caption || 'Visual frame'}</div>
+                <div class="text-slate-200 line-clamp-2 leading-snug text-[11px]">${r.frame_caption || 'Visual frame'}</div>
                 <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1">
                   <span>${r.detection_summary || 'No objects'}</span>
                   <span class="font-mono text-brand-400">Score: ${r.score.toFixed(3)}</span>
@@ -795,4 +848,3 @@
   </script>
 </body>
 </html>
-
