@@ -1,0 +1,56 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Environments & configs
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# Data storage & media assets
+data/videos/*
+!data/videos/.gitkeep
+data/frames/*
+!data/frames/.gitkeep
+data/qdrant_db/
+data/summaries/*
+!data/summaries/.gitkeep
+
+# Video and image files
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+
+# Large model weights & exports
+*.pt
+*.pth
+*.bin
+*.onnx
+*.engine
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs & temp files
+*.log
+logs/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

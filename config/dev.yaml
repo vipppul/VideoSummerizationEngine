@@ -1,0 +1,15 @@
+# Development configuration overrides
+
+app:
+  log_level: "DEBUG"
+
+ingestion:
+  sample_interval_sec: 2.0               # Sample less frequently during development
+
+vector_db:
+  use_memory: true                       # In-memory Qdrant instance for fast tests
+
+llm:
+  provider: "google"
+  model: "gemini-2.5-flash"
+

@@ -1,0 +1,79 @@
+# Configuration for Multimodal Video Search Engine
+
+app:
+  name: "video-search-engine"
+  log_level: "INFO"                      # DEBUG | INFO | WARNING | ERROR
+  frame_storage_path: "./data/frames"
+  summary_storage_path: "./data/summaries"
+
+ingestion:
+  sample_strategy: "fixed_fps"           # fixed_fps | keyframe | scene_change | adaptive
+  sample_interval_sec: 1.0
+  scene_threshold: 0.3
+  min_interval_sec: 0.5
+  queue_max_size: 64
+  queue_overflow_policy: "block"         # block | drop_oldest
+  ffmpeg_hwaccel: null                   # null | cuda | vaapi
+
+detection:
+  model: "yolov8n.pt"                    # default yolov8n.pt or yolov8x.pt
+  device: "cuda:0"                       # cuda:0 | cpu
+  confidence_threshold: 0.35
+  iou_threshold: 0.45
+  input_size: 640
+  target_classes: null                   # null = all COCO classes
+  batch_size: 16
+
+vlm:
+  model: "microsoft/Florence-2-large"     # microsoft/Florence-2-base or large
+  device: "cuda:0"
+  max_new_tokens: 1024
+  batch_size: 4
+  tasks:
+    - "MORE_DETAILED_CAPTION"
+    - "DENSE_REGION_CAPTION"
+    - "OCR_WITH_REGION"
+  parallel_tasks: false
+  fallback_to_heuristic: true           # If Florence-2 cannot be loaded on low VRAM, graceful fallback
+
+embedding:
+  model: "ViT-B-32"                      # open_clip ViT-B-32 (pretrained: laion2b_s34b_b79k) or ViT-L-14
+  pretrained: "laion2b_s34b_b79k"
+  dim: 512
+  device: "cuda:0"
+  batch_size: 32
+  fusion_strategy: "weighted_average"    # image_only | text_only | weighted_average | concatenate
+  fusion_alpha: 0.6                      # Weight for image vector in weighted_average
+
+vector_db:
+  provider: "qdrant"
+  host: "localhost"
+  port: 6333
+  grpc_port: 6334
+  collection_name: "video_frames"
+  use_grpc: false
+  use_memory: true                       # If Qdrant server is not running locally, seamlessly use in-memory/embedded Qdrant!
+  storage_path: "./data/qdrant_db"
+  quantization: "none"                   # none | int8 | binary
+
+summary_store:
+  backend: "sqlite"                      # sqlite | json
+  sqlite_path: "./data/summaries/summaries.db"
+
+query:
+  default_top_k: 20
+  reranker_enabled: true
+  reranker_type: "cross_encoder"         # cross_encoder | llm | none
+  reranker_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  reranker_top_n: 8
+  score_threshold: 0.15
+  temporal_cluster_window_sec: 5.0
+  rrf_k: 60
+
+llm:
+  provider: "google"                     # google | openai | mock
+  model: "gemini-2.5-flash"
+  api_key_env: "GOOGLE_API_KEY"
+  max_tokens: 2048
+  temperature: 0.1
+

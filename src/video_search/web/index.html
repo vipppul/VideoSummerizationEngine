@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aether Video // Multimodal Semantic Search & Summarization</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            surface: {
+              DEFAULT: '#090a0f',
+              card: '#12141c',
+              border: '#1f2433',
+              hover: '#1b1f2d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #08090d; color: #e2e8f0; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0c0e14; }
+    ::-webkit-scrollbar-thumb { background: #262c3f; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3b4461; }
+    .glass { background: rgba(18, 20, 28, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.07); }
+    .pulse-dot { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(0.85); } }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased text-slate-200">
+
+  <!-- TOP NAVIGATION HEADER -->
+  <header class="sticky top-0 z-40 border-b border-surface-border bg-surface/80 backdrop-blur-xl px-6 py-3.5 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+        <i data-lucide="video" class="w-5 h-5 text-white"></i>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-base tracking-tight text-white">AETHER VIDEO</span>
+          <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-semibold">VLM 2.0</span>
+        </div>
+        <p class="text-xs text-slate-400">Multimodal Summarization & Semantic Retrieval Engine</p>
+      </div>
+    </div>
+
+    <!-- Active Video Selector & Actions -->
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-card border border-surface-border text-xs">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+        <span class="text-slate-400">Selected Video:</span>
+        <select id="videoSelect" class="bg-transparent text-white font-medium focus:outline-none cursor-pointer max-w-[180px] truncate" onchange="switchVideo(this.value)">
+          <option value="" disabled selected>Loading videos...</option>
+        </select>
+      </div>
+
+      <button onclick="openIngestModal()" class="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 transition-all font-medium text-xs text-white shadow-lg shadow-brand-600/30 active:scale-95">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        <span>Ingest Video</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN APPLICATION CONTENT -->
+  <main class="flex-1 max-w-[1720px] w-full mx-auto p-5 grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+    <!-- LEFT COLUMN: VIDEO PLAYER, TIMELINE & NARRATIVE (7 Cols) -->
+    <div class="lg:col-span-7 flex flex-col gap-5">
+      
+      <!-- Video Player Card -->
+      <div class="glass rounded-2xl overflow-hidden flex flex-col shadow-2xl relative group">
+        <div class="relative bg-black aspect-video flex items-center justify-center overflow-hidden">
+          <video id="mainVideoPlayer" controls class="w-full h-full object-contain" preload="metadata">
+            <source id="videoSource" src="" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+          <div id="noVideoOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-surface-card/90 gap-3 text-center p-6">
+            <div class="w-14 h-14 rounded-2xl bg-surface-hover border border-surface-border flex items-center justify-center text-slate-400">
+              <i data-lucide="film" class="w-7 h-7"></i>
+            </div>
+            <h3 class="font-semibold text-white">No Video Loaded</h3>
+            <p class="text-xs text-slate-400 max-w-sm">Select an analyzed video from the top bar or ingest a new video file to explore multimodal search.</p>
+            <button onclick="openIngestModal()" class="mt-2 px-4 py-2 text-xs bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition">
+              Ingest Your First Video
+            </button>
+          </div>
+        </div>
+
+        <!-- Video Controls Bar / Status -->
+        <div class="px-5 py-3 border-t border-surface-border flex items-center justify-between text-xs bg-surface-card">
+          <div class="flex items-center gap-3">
+            <span id="currentVideoTitle" class="font-semibold text-white truncate max-w-xs">No Active Video</span>
+            <span id="videoDurationBadge" class="font-mono text-slate-400 px-2 py-0.5 rounded bg-surface-hover">00:00:00</span>
+          </div>
+          <div class="flex items-center gap-2 text-slate-400 text-[11px]">
+            <span class="flex items-center gap-1"><i data-lucide="cpu" class="w-3.5 h-3.5 text-brand-400"></i> YOLOv8</span>
+            <span>•</span>
+            <span class="flex items-center gap-1"><i data-lucide="eye" class="w-3.5 h-3.5 text-indigo-400"></i> Florence-2 VLM</span>
+            <span>•</span>
+            <span class="flex items-center gap-1"><i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i> CLIP ViT-B/32</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chronological Summary Card -->
+      <div class="glass rounded-2xl p-5 flex flex-col gap-3 shadow-xl">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="book-open" class="w-4 h-4 text-brand-400"></i>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Chronological Narrative Summary</h3>
+          </div>
+          <span id="segmentCountBadge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-surface-hover text-slate-400">0 Segments</span>
+        </div>
+
+        <div id="narrativeContainer" class="bg-surface/50 border border-surface-border rounded-xl p-4 text-xs leading-relaxed text-slate-300 font-sans max-h-48 overflow-y-auto whitespace-pre-line">
+          Select or ingest a video to view its automated chronological narrative summary.
+        </div>
+
+        <!-- Interactive Timeline Segments -->
+        <div id="segmentsList" class="flex flex-col gap-2 max-h-56 overflow-y-auto mt-1">
+          <!-- Dynamically populated segment items -->
+        </div>
+      </div>
+
+      <!-- Evidence Frames Carousel / Gallery -->
+      <div class="glass rounded-2xl p-5 flex flex-col gap-3 shadow-xl">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i data-lucide="images" class="w-4 h-4 text-brand-400"></i>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Evidence Frames Gallery</h3>
+          </div>
+          <span id="evidenceCountBadge" class="text-[11px] font-mono text-slate-400">Click to seek video</span>
+        </div>
+        <div id="evidenceFramesGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 overflow-y-auto max-h-48">
+          <div class="col-span-full py-8 text-center text-xs text-slate-500">
+            Ask a question or search to view matching visual evidence frames.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: MULTIMODAL CONVERSATION & SEMANTIC SEARCH (5 Cols) -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+      
+      <div class="glass rounded-2xl flex-1 flex flex-col shadow-2xl overflow-hidden min-h-[680px]">
+        
+        <!-- Tab Selector -->
+        <div class="p-3 border-b border-surface-border bg-surface-card flex items-center justify-between gap-2">
+          <div class="flex items-center bg-surface/80 p-1 rounded-xl border border-surface-border w-full">
+            <button id="tabChatBtn" onclick="switchRightTab('chat')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition flex items-center justify-center gap-2">
+              <i data-lucide="message-square" class="w-3.5 h-3.5"></i>
+              <span>VLM Assistant (Q&A)</span>
+            </button>
+            <button id="tabSearchBtn" onclick="switchRightTab('search')" class="flex-1 py-1.5 text-xs font-medium text-slate-400 hover:text-white rounded-lg transition flex items-center justify-center gap-2">
+              <i data-lucide="search" class="w-3.5 h-3.5"></i>
+              <span>Semantic Search</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 1: CONVERSATIONAL VLM ASSISTANT -->
+        <div id="chatPane" class="flex-1 flex flex-col justify-between overflow-hidden">
+          
+          <!-- Chat Message Thread -->
+          <div id="chatMessages" class="flex-1 p-4 overflow-y-auto flex flex-col gap-4">
+            <!-- Welcome Bot Message -->
+            <div class="flex gap-3">
+              <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-purple-600 flex-shrink-0 flex items-center justify-center text-white">
+                <i data-lucide="sparkles" class="w-4 h-4"></i>
+              </div>
+              <div class="flex flex-col gap-1.5 max-w-[85%]">
+                <div class="bg-surface-card border border-surface-border rounded-2xl rounded-tl-sm p-3.5 text-xs leading-relaxed text-slate-200">
+                  Hello! I am your Multimodal Video Assistant. I inspect your video using Florence-2 VLM and YOLO object detection to answer arbitrary questions with exact timestamps.
+                  <div class="mt-3 pt-3 border-t border-surface-border flex flex-wrap gap-1.5">
+                    <span class="text-[10px] text-slate-400 w-full mb-1">Try asking:</span>
+                    <button onclick="askPrompt(this.innerText)" class="px-2.5 py-1 rounded-md bg-surface-hover hover:bg-brand-500/20 hover:text-brand-300 text-[11px] text-slate-300 border border-surface-border transition">When does the vehicle with license plate ABC-1234 appear?</button>
+                    <button onclick="askPrompt(this.innerText)" class="px-2.5 py-1 rounded-md bg-surface-hover hover:bg-brand-500/20 hover:text-brand-300 text-[11px] text-slate-300 border border-surface-border transition">What is the pedestrian doing?</button>
+                    <button onclick="askPrompt(this.innerText)" class="px-2.5 py-1 rounded-md bg-surface-hover hover:bg-brand-500/20 hover:text-brand-300 text-[11px] text-slate-300 border border-surface-border transition">What happens between 4 and 8 seconds?</button>
+                  </div>
+                </div>
+                <span class="text-[10px] text-slate-500 font-mono">Engine Ready</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Input Bar -->
+          <div class="p-4 border-t border-surface-border bg-surface-card/60">
+            <form onsubmit="handleChatSubmit(event)" class="relative flex items-center">
+              <input id="chatInput" type="text" placeholder="Ask anything about the video scene, objects, or text..." class="w-full bg-surface border border-surface-border rounded-xl pl-4 pr-12 py-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition">
+              <button type="submit" id="sendBtn" class="absolute right-2.5 w-8 h-8 rounded-lg bg-brand-600 hover:bg-brand-500 flex items-center justify-center text-white transition active:scale-95 disabled:opacity-50">
+                <i data-lucide="arrow-up" class="w-4 h-4"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 2: SEMANTIC SEARCH & EXPLORER -->
+        <div id="searchPane" class="flex-1 flex flex-col overflow-hidden hidden">
+          <div class="p-4 border-b border-surface-border bg-surface-card/40 flex flex-col gap-2">
+            <div class="relative">
+              <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+              <input id="searchInput" type="text" placeholder="Search visual concepts (e.g. 'red car', 'crosswalk', 'EXIT')..." onkeydown="if(event.key==='Enter') executeSemanticSearch()" class="w-full bg-surface border border-surface-border rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+            </div>
+            <div class="flex items-center justify-between text-[11px] text-slate-400">
+              <span id="searchResultCount">0 frames matching</span>
+              <button onclick="executeSemanticSearch()" class="px-3 py-1 bg-surface-hover hover:bg-surface-border text-slate-200 rounded-md font-medium text-xs">Search Index</button>
+            </div>
+          </div>
+
+          <div id="searchResultsList" class="flex-1 p-4 overflow-y-auto flex flex-col gap-3">
+            <div class="text-center text-xs text-slate-500 py-12">
+              Enter a search query above to explore frames ranked by multimodal cosine similarity.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- MODAL: INGEST NEW VIDEO -->
+  <div id="ingestModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm hidden p-4">
+    <div class="glass max-w-lg w-full rounded-2xl p-6 flex flex-col gap-4 shadow-2xl relative">
+      <button onclick="closeIngestModal()" class="absolute right-4 top-4 text-slate-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-brand-600/20 text-brand-400 flex items-center justify-center">
+          <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+        </div>
+        <h3 class="font-bold text-white text-base">Ingest Video for Analysis</h3>
+      </div>
+
+      <!-- Ingest Mode Tabs -->
+      <div class="flex items-center bg-surface border border-surface-border p-1 rounded-xl text-xs font-medium">
+        <button id="modeUploadBtn" onclick="switchIngestMode('upload')" class="flex-1 py-1.5 rounded-lg bg-surface-hover text-white">Upload File</button>
+        <button id="modePathBtn" onclick="switchIngestMode('path')" class="flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white">Local Path / RTSP</button>
+      </div>
+
+      <!-- Upload Form -->
+      <form id="uploadForm" onsubmit="handleVideoUpload(event)" class="flex flex-col gap-4">
+        <div class="border-2 border-dashed border-surface-border hover:border-brand-500/50 rounded-xl p-8 flex flex-col items-center justify-center gap-2 cursor-pointer bg-surface/30 transition text-center" onclick="document.getElementById('fileInput').click()">
+          <i data-lucide="file-video" class="w-8 h-8 text-brand-400"></i>
+          <span class="text-xs font-semibold text-white">Click to browse or drop video file</span>
+          <span class="text-[11px] text-slate-400">Supports .mp4, .mkv, .avi, .mov</span>
+          <span id="selectedFileName" class="text-xs font-mono text-emerald-400 mt-2 font-medium"></span>
+          <input id="fileInput" type="file" accept="video/*" class="hidden" onchange="onFileSelected(this)">
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-slate-300">Video Identifier (Optional)</label>
+          <input id="uploadVideoId" type="text" placeholder="e.g. traffic_cam_01" class="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <div class="flex justify-between text-xs">
+            <span class="text-slate-300">Frame Sample Interval</span>
+            <span id="sampleValBadge" class="font-mono text-brand-400">1.0s (1 FPS)</span>
+          </div>
+          <input id="sampleIntervalSlider" type="range" min="0.5" max="3.0" step="0.5" value="1.0" oninput="document.getElementById('sampleValBadge').innerText = this.value + 's'" class="w-full accent-brand-500 cursor-pointer">
+        </div>
+
+        <button type="submit" id="submitUploadBtn" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-600/30 transition flex items-center justify-center gap-2">
+          <span>Start Ingestion & Indexing</span>
+        </button>
+      </form>
+
+      <!-- Local Path / RTSP Form -->
+      <form id="pathForm" onsubmit="handlePathIngest(event)" class="flex flex-col gap-4 hidden">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-slate-300">Video File Path or RTSP Stream URL</label>
+          <input id="pathInput" type="text" placeholder="D:\videos\traffic.mp4 or rtsp://..." class="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500" required>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-medium text-slate-300">Video Identifier (Optional)</label>
+          <input id="pathVideoId" type="text" placeholder="e.g. highway_cam_west" class="w-full bg-surface border border-surface-border rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+        </div>
+
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-lg shadow-brand-600/30 transition flex items-center justify-center gap-2">
+          <span>Start Ingestion & Indexing</span>
+        </button>
+      </form>
+
+      <!-- Processing Status in Modal -->
+      <div id="modalStatus" class="hidden p-3 rounded-xl bg-surface border border-brand-500/30 flex items-center gap-3">
+        <i data-lucide="loader-2" class="w-5 h-5 text-brand-400 animate-spin"></i>
+        <div class="flex flex-col">
+          <span id="modalStatusText" class="text-xs font-semibold text-white">Ingesting video...</span>
+          <span id="modalStatusSub" class="text-[11px] text-slate-400">Extracting frames and running neural inference</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APP LOGIC -->
+  <script>
+    let activeVideoId = null;
+    let pollInterval = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadVideoList();
+    });
+
+    // 1. Video List & Switching
+    async function loadVideoList() {
+      try {
+        const res = await fetch('/api/v1/videos');
+        if (res.ok) {
+          const videos = await res.json();
+          const select = document.getElementById('videoSelect');
+          select.innerHTML = '';
+          if (videos.length === 0) {
+            select.innerHTML = '<option value="" disabled selected>No videos available</option>';
+            return;
+          }
+          
+          const stored = localStorage.getItem('activeVideoId');
+          const targetId = (activeVideoId && videos.some(v => v.video_id === activeVideoId))
+            ? activeVideoId
+            : (stored && videos.some(v => v.video_id === stored) ? stored : videos[0].video_id);
+
+          videos.forEach((v) => {
+            const opt = document.createElement('option');
+            opt.value = v.video_id;
+            opt.innerText = `${v.video_id} (${v.total_frames || 0} frames)`;
+            if (v.video_id === targetId) opt.selected = true;
+            select.appendChild(opt);
+          });
+          select.value = targetId;
+          switchVideo(targetId);
+        }
+      } catch (e) {
+        console.error('Failed to load video list:', e);
+      }
+    }
+
+    async function switchVideo(videoId) {
+      if (!videoId) return;
+      activeVideoId = videoId;
+      localStorage.setItem('activeVideoId', videoId);
+      document.getElementById('currentVideoTitle').innerText = videoId;
+      
+      const select = document.getElementById('videoSelect');
+      if (select && select.value !== videoId) {
+        select.value = videoId;
+      }
+
+      // Update Video Player Source
+      const player = document.getElementById('mainVideoPlayer');
+      const source = document.getElementById('videoSource');
+      source.src = `/api/v1/videos/${videoId}/stream`;
+      player.load();
+      document.getElementById('noVideoOverlay').classList.add('hidden');
+
+      // Load Summary
+      loadVideoSummary(videoId);
+    }
+
+    async function loadVideoSummary(videoId) {
+      try {
+        const res = await fetch(`/api/v1/videos/${videoId}/summary`);
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('narrativeContainer').innerText = data.narrative || "No summary text generated.";
+          document.getElementById('segmentCountBadge').innerText = `${data.segments.length} Segments`;
+          
+          if (data.duration_sec) {
+            const hrs = Math.floor(data.duration_sec / 3600);
+            const mins = Math.floor((data.duration_sec % 3600) / 60);
+            const secs = Math.floor(data.duration_sec % 60);
+            document.getElementById('videoDurationBadge').innerText = 
+              `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+          }
+
+          // Render Interactive Timeline Segments
+          renderSegments(data.segments);
+        }
+      } catch (e) {
+        console.error('Failed to load summary:', e);
+      }
+    }
+
+    function renderSegments(segments) {
+      const list = document.getElementById('segmentsList');
+      list.innerHTML = '';
+      if (!segments || segments.length === 0) return;
+
+      segments.forEach((seg, idx) => {
+        const div = document.createElement('div');
+        div.className = "flex items-start gap-3 p-2.5 rounded-xl bg-surface/40 hover:bg-surface-hover border border-surface-border cursor-pointer transition text-xs group";
+        div.onclick = () => seekVideo(seg.start_sec);
+
+        div.innerHTML = `
+          <button class="px-2 py-1 rounded bg-brand-600/20 text-brand-300 font-mono text-[11px] font-semibold flex-shrink-0 group-hover:bg-brand-600 group-hover:text-white transition">
+            ${formatSeconds(seg.start_sec)} - ${formatSeconds(seg.end_sec)}
+          </button>
+          <div class="flex-1 leading-snug text-slate-300">
+            ${seg.summary_text}
+          </div>
+        `;
+        list.appendChild(div);
+      });
+      lucide.createIcons();
+    }
+
+    function seekVideo(seconds) {
+      const player = document.getElementById('mainVideoPlayer');
+      if (player) {
+        player.currentTime = seconds;
+        player.play().catch(() => {});
+      }
+    }
+
+    function formatSeconds(secs) {
+      const m = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    // 2. Chat / VLM Assistant
+    function switchRightTab(tab) {
+      const chatPane = document.getElementById('chatPane');
+      const searchPane = document.getElementById('searchPane');
+      const tabChatBtn = document.getElementById('tabChatBtn');
+      const tabSearchBtn = document.getElementById('tabSearchBtn');
+
+      if (tab === 'chat') {
+        chatPane.classList.remove('hidden');
+        searchPane.classList.add('hidden');
+        tabChatBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition flex items-center justify-center gap-2";
+        tabSearchBtn.className = "flex-1 py-1.5 text-xs font-medium text-slate-400 hover:text-white rounded-lg transition flex items-center justify-center gap-2";
+      } else {
+        chatPane.classList.add('hidden');
+        searchPane.classList.remove('hidden');
+        tabSearchBtn.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg bg-brand-600 text-white transition flex items-center justify-center gap-2";
+        tabChatBtn.className = "flex-1 py-1.5 text-xs font-medium text-slate-400 hover:text-white rounded-lg transition flex items-center justify-center gap-2";
+      }
+    }
+
+    function askPrompt(text) {
+      document.getElementById('chatInput').value = text;
+      handleChatSubmit(new Event('submit'));
+    }
+
+    async function handleChatSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('chatInput');
+      const query = input.value.trim();
+      if (!query) return;
+
+      input.value = '';
+      appendUserMessage(query);
+
+      // Add Loading indicator
+      const loaderId = appendLoadingMessage();
+
+      try {
+        const res = await fetch('/api/v1/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query, video_id: activeVideoId })
+        });
+
+        removeMessage(loaderId);
+
+        if (res.ok) {
+          const data = await res.json();
+          appendBotMessage(data);
+          if (data.evidence_frames) {
+            renderEvidenceFrames(data.evidence_frames);
+          }
+        } else {
+          appendErrorMessage("Server error during query processing.");
+        }
+      } catch (err) {
+        removeMessage(loaderId);
+        appendErrorMessage(err.message);
+      }
+    }
+
+    function appendUserMessage(text) {
+      const container = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = "flex justify-end gap-3";
+      div.innerHTML = `
+        <div class="bg-brand-600 text-white text-xs rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[80%] leading-relaxed shadow-md">
+          ${text}
+        </div>
+      `;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendLoadingMessage() {
+      const container = document.getElementById('chatMessages');
+      const id = 'loader_' + Date.now();
+      const div = document.createElement('div');
+      div.id = id;
+      div.className = "flex gap-3";
+      div.innerHTML = `
+        <div class="w-8 h-8 rounded-lg bg-surface-card border border-surface-border flex items-center justify-center text-brand-400 animate-spin">
+          <i data-lucide="loader-2" class="w-4 h-4"></i>
+        </div>
+        <div class="bg-surface-card border border-surface-border rounded-2xl rounded-tl-sm p-3 text-xs text-slate-400 flex items-center gap-2">
+          <span>Florence-2 VLM inspecting frames...</span>
+        </div>
+      `;
+      container.appendChild(div);
+      lucide.createIcons();
+      container.scrollTop = container.scrollHeight;
+      return id;
+    }
+
+    function removeMessage(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+
+    function appendBotMessage(data) {
+      const container = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = "flex gap-3";
+
+      let timestampsHtml = '';
+      if (data.timestamps && data.timestamps.length > 0) {
+        timestampsHtml = `
+          <div class="mt-3 pt-3 border-t border-surface-border flex flex-col gap-1.5">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cited Timestamps:</span>
+            <div class="flex flex-wrap gap-1.5">
+              ${data.timestamps.map(t => `
+                <button onclick="seekVideo(${t.time_sec})" class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-brand-500/10 hover:bg-brand-500 text-brand-300 hover:text-white border border-brand-500/20 text-[11px] font-mono transition">
+                  <i data-lucide="play" class="w-3 h-3"></i>
+                  <span>${t.time_formatted || t.time_sec.toFixed(2) + 's'}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      div.innerHTML = `
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-purple-600 flex-shrink-0 flex items-center justify-center text-white">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </div>
+        <div class="flex flex-col gap-1 max-w-[85%]">
+          <div class="bg-surface-card border border-surface-border rounded-2xl rounded-tl-sm p-3.5 text-xs leading-relaxed text-slate-200">
+            ${data.answer}
+            ${timestampsHtml}
+          </div>
+          <span class="text-[10px] text-slate-500 font-mono">Confidence: ${(data.confidence * 100).toFixed(0)}%</span>
+        </div>
+      `;
+      container.appendChild(div);
+      lucide.createIcons();
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendErrorMessage(msg) {
+      const container = document.getElementById('chatMessages');
+      const div = document.createElement('div');
+      div.className = "flex gap-3";
+      div.innerHTML = `
+        <div class="bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl p-3 text-xs w-full">
+          <strong>Error:</strong> ${msg}
+        </div>
+      `;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function renderEvidenceFrames(frames) {
+      const grid = document.getElementById('evidenceFramesGrid');
+      grid.innerHTML = '';
+      if (!frames || frames.length === 0) return;
+
+      frames.slice(0, 8).forEach(f => {
+        const card = document.createElement('div');
+        card.className = "relative rounded-xl overflow-hidden bg-surface-card border border-surface-border cursor-pointer group hover:border-brand-500 transition aspect-video flex items-center justify-center";
+        card.onclick = () => seekVideo(f.timestamp_sec);
+
+        card.innerHTML = `
+          <img src="/api/v1/frames/${f.video_id}/${f.frame_index}/image" class="w-full h-full object-cover group-hover:scale-105 transition" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2260%22><rect width=%22100%22 height=%2260%22 fill=%22%23222%22/></svg>'">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-1.5">
+            <span class="text-[10px] font-mono text-white bg-black/60 px-1.5 py-0.5 rounded">${f.timestamp_sec.toFixed(2)}s</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+      document.getElementById('evidenceCountBadge').innerText = `${frames.length} frames found`;
+    }
+
+    // 3. Semantic Search Execution
+    async function executeSemanticSearch() {
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) return;
+
+      const resultsList = document.getElementById('searchResultsList');
+      resultsList.innerHTML = '<div class="text-xs text-slate-400 p-4 text-center">Searching vector index...</div>';
+
+      try {
+        const res = await fetch('/api/v1/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query, video_id: activeVideoId, top_k: 12 })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('searchResultCount').innerText = `${data.total_results} frames matching`;
+          resultsList.innerHTML = '';
+
+          if (data.results.length === 0) {
+            resultsList.innerHTML = '<div class="text-xs text-slate-500 p-8 text-center">No matching frames found.</div>';
+            return;
+          }
+
+          data.results.forEach(r => {
+            const card = document.createElement('div');
+            card.className = "p-3 rounded-xl bg-surface-card border border-surface-border hover:border-brand-500/50 cursor-pointer transition flex gap-3 text-xs";
+            card.onclick = () => seekVideo(r.timestamp_sec);
+
+            card.innerHTML = `
+              <div class="w-24 h-16 rounded-lg overflow-hidden bg-black flex-shrink-0 relative">
+                <img src="/api/v1/frames/${r.video_id}/${r.frame_index}/image" class="w-full h-full object-cover">
+                <span class="absolute bottom-1 right-1 text-[9px] font-mono bg-black/70 text-white px-1 rounded">${r.timestamp_formatted}</span>
+              </div>
+              <div class="flex-1 flex flex-col justify-between">
+                <div class="text-slate-200 line-clamp-2 leading-snug">${r.frame_caption || 'Visual frame'}</div>
+                <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                  <span>${r.detection_summary || 'No objects'}</span>
+                  <span class="font-mono text-brand-400">Score: ${r.score.toFixed(3)}</span>
+                </div>
+              </div>
+            `;
+            resultsList.appendChild(card);
+          });
+        }
+      } catch (err) {
+        resultsList.innerHTML = `<div class="text-xs text-rose-400 p-4">Error: ${err.message}</div>`;
+      }
+    }
+
+    // 4. Modal & Ingestion
+    function openIngestModal() { document.getElementById('ingestModal').classList.remove('hidden'); }
+    function closeIngestModal() { document.getElementById('ingestModal').classList.add('hidden'); }
+
+    function switchIngestMode(mode) {
+      if (mode === 'upload') {
+        document.getElementById('uploadForm').classList.remove('hidden');
+        document.getElementById('pathForm').classList.add('hidden');
+        document.getElementById('modeUploadBtn').className = "flex-1 py-1.5 rounded-lg bg-surface-hover text-white";
+        document.getElementById('modePathBtn').className = "flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white";
+      } else {
+        document.getElementById('uploadForm').classList.add('hidden');
+        document.getElementById('pathForm').classList.remove('hidden');
+        document.getElementById('modePathBtn').className = "flex-1 py-1.5 rounded-lg bg-surface-hover text-white";
+        document.getElementById('modeUploadBtn').className = "flex-1 py-1.5 rounded-lg text-slate-400 hover:text-white";
+      }
+    }
+
+    function onFileSelected(input) {
+      if (input.files && input.files[0]) {
+        document.getElementById('selectedFileName').innerText = input.files[0].name;
+      }
+    }
+
+    async function handleVideoUpload(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('fileInput');
+      if (!fileInput.files || !fileInput.files[0]) {
+        alert("Please select a video file to upload.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('video_id', document.getElementById('uploadVideoId').value || '');
+      formData.append('sample_interval_sec', document.getElementById('sampleIntervalSlider').value);
+
+      showModalStatus("Uploading and starting ingestion pipeline...");
+
+      try {
+        const res = await fetch('/api/v1/videos/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          pollIngestStatus(data.video_id);
+        } else {
+          alert("Upload failed: " + (await res.text()));
+          hideModalStatus();
+        }
+      } catch (err) {
+        alert("Upload error: " + err.message);
+        hideModalStatus();
+      }
+    }
+
+    async function handlePathIngest(e) {
+      e.preventDefault();
+      const path = document.getElementById('pathInput').value.trim();
+      const videoId = document.getElementById('pathVideoId').value.trim();
+
+      showModalStatus("Submitting video for processing...");
+
+      try {
+        const res = await fetch('/api/v1/videos/ingest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            source_uri: path,
+            video_id: videoId || null,
+            sample_interval_sec: 1.0,
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          pollIngestStatus(data.video_id);
+        } else {
+          alert("Ingest error: " + (await res.text()));
+          hideModalStatus();
+        }
+      } catch (err) {
+        alert("Ingest error: " + err.message);
+        hideModalStatus();
+      }
+    }
+
+    function showModalStatus(text) {
+      document.getElementById('modalStatus').classList.remove('hidden');
+      document.getElementById('modalStatusText').innerText = text;
+    }
+
+    function hideModalStatus() {
+      document.getElementById('modalStatus').classList.add('hidden');
+    }
+
+    function pollIngestStatus(videoId) {
+      if (pollInterval) clearInterval(pollInterval);
+
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/v1/videos/${videoId}/status`);
+          if (res.ok) {
+            const data = await res.json();
+            document.getElementById('modalStatusText').innerText = `Status: ${data.status} (${data.frames_indexed || 0} frames indexed)`;
+            if (data.status === 'completed') {
+              clearInterval(pollInterval);
+              hideModalStatus();
+              closeIngestModal();
+              await loadVideoList();
+              switchVideo(videoId);
+            } else if (data.status === 'failed') {
+              clearInterval(pollInterval);
+              alert("Video processing failed.");
+              hideModalStatus();
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 1500);
+    }
+  </script>
+</body>
+</html>
+
